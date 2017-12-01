@@ -33,103 +33,115 @@
 require_once('vars.php');
 
 $ROUNDS = array();
-$ATTAQUANT = array(
-	202 => 500,
-	215 => 1000
-);
-$DEFENSEUR = array(
-    202 => 750,
-	207 => 1000
-);
 
+require_once('listFleet.php');
+
+$ATTACKER = $ATTAQUANT;
+$DEFENDER = $DEFENSEUR;
 for($round = 1;$round <= 6;$round++)
 {
 	$ROUNDS[$round] = array(
-		'Attaquant'=>$ATTAQUANT,
-		'Defenseur'=>$DEFENSEUR
+		'Attaquant'=>$ATTACKER,
+		'Defenseur'=>$DEFENDER
 	);
 
+	#####################################
+	#		PHASE DE COMBAT NORMALE		#
+	#####################################
+	
 	// l'attaquant est le premier à agresser !
 	foreach($ROUNDS[$round]['Attaquant'] AS $typeAtt=>$amountAtt){
 		foreach($ROUNDS[$round]['Defenseur'] AS $typeDef=>$amountDef){
-			var_dump($amountDef);
-			if($amountDef > 0)
-			{
-				var_dump('Tour '.$round);
-				$ArmeAtt[$typeAtt] = armes($typeAtt,$amountAtt);
-				$ShieldDef[$typeDef] = bouclier($typeDef,$amountDef);
-				$CoqueDef[$typeDef] = coque($typeDef,$amountDef);
-				var_dump('ID vaisseau Att '.$typeAtt .' Attaque ID vaisseau def '.$typeDef);
-				if($ArmeAtt[$typeAtt] > $ShieldDef[$typeDef]){
-					$ArmeAtt[$typeAtt] -= $ShieldDef[$typeDef];
-					var_dump('le bouclier du defenseur n\'a pas tout absorber , il reste '.$ArmeAtt[$typeAtt].' de puissance a l\'attaquant');
-					if($ArmeAtt[$typeAtt] >= $CoqueDef[$typeDef]){
-						var_dump('la coque du vaisseau '.$typeDef.' du defenseur est détruite');
-						# la c'est il n'y a plus rien x)
-						$CoqueDef [$typeDef]= 0;
-						$ShieldDef[$typeDef] = 0;
-						$amountDef = 0;
-					}else{
-						var_dump(''.$ArmeAtt[$typeAtt].' de puissance a l\'attaquant');
-						var_dump('la coque du vaisseau '. $CoqueDef[$typeDef] .' du defenseur');
-						$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
-						$CoqueDef[$typeDef] -= $ArmeAtt[$typeAtt];
-						var_dump('la coque du vaisseau '.$typeDef.' du defenseur a absorbe ' .$CoqueDef[$typeDef]);
-						$ShieldDef[$typeDef] = 0;
-						$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
-					}
+			if($amountDef > 0){
+				if(round(((coque($typeDef,$amountDef)/coque($typeDef,$DEFENSEUR[$typeDef])) * 100)) >= 30){
+					
+					$amountDef = Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
+					
 				}else{
-					$ShieldDef[$typeDef] -= $ArmeAtt[$typeAtt];
-					var_dump('le bouclier du defenseur a tous absorber mais il lui reste '.$ShieldDef[$typeDef].' de bouclier');
+					if(rand(1,100) <= round(((coque($typeDef,$amountDef)/coque($typeDef,$DEFENSEUR[$typeDef])) * 100))){
+						$amountDef = 0;
+					}					
 				}
 			}
 			
-			$ATTAQUANT[$typeAtt] = intval($amountAtt);
-			$DEFENSEUR[$typeDef] = intval($amountDef);
+			$ATTACKER[$typeAtt] = intval($amountAtt);
+			$DEFENDER[$typeDef] = intval($amountDef);
 		}
 	}
 	$ROUNDS[$round] = array(
-		'Attaquant'=>$ATTAQUANT,
-		'Defenseur'=>$DEFENSEUR
+		'Attaquant'=>$ATTACKER,
+		'Defenseur'=>$DEFENDER
 	);
 	
-	var_dump('On enregistre le nouveau tableau !');
-	var_dump($ROUNDS[$round]);
-	
-	// le defenseur replique
-	foreach($ROUNDS[$round]['Defenseur'] AS $typeDef=>$amountDef){
-		foreach($ROUNDS[$round]['Attaquant'] AS $typeAtt=>$amountAtt){
-			// if($amountAtt > 0)
-			// {
-				// $ArmeDef = armes($typeDef,$amountDef);
-				// $ShieldAtt = bouclier($typeAtt,$amountAtt);
-				// $CoqueAtt = coque($typeAtt,$amountAtt);
-				// if($ArmeDef > $ShieldAtt){
-					// $NewArmeDef = $ArmeDef - $ShieldAtt;
-					// $ArmeDef = $NewArmeDef;
-					// if($ArmeDef >= $CoqueAtt){
-						// # la c'est il n'y a plus rien x)
-						// $NewCoqueAtt = 0;
-						// $NewShieldAtt = 0;
-						// $NewAmountAtt = 0;
-					// }else{
-						// $NewCoqueAtt = $CoqueAtt - $ArmeDef;
-						// $NewShieldAtt = 0;
-						// $NewAmountAtt =$amountAtt - round(($NewCoqueAtt/$amountAtt));
-					// }
-				// }else{
-					// $NewCoqueAtt = $CoqueAtt;
-					// $NewShieldAtt = $ShieldAtt - $ArmeDef;
-					// $NewAmountAtt = $amountAtt;
-				// }
-			// }
-			// $defend[] = array($typeDef=>$NewAmountDef);
-			// $Attack[] = array($typeAtt=>$amountDef);
+	// au tour du défenseur 
+	foreach($ROUNDS[$round]['Defenseur'] AS $typeAtt=>$amountAtt){
+		foreach($ROUNDS[$round]['Attaquant'] AS $typeDef=>$amountDef){
+			if($amountDef > 0){	
+				if(round(((coque($typeDef,$amountDef)/coque($typeDef,$ATTAQUANT[$typeDef])) * 100)) >= 30){
+					
+					$amountDef = Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
+					
+				}else{
+					if(rand(1,100) <= round(((coque($typeDef,$amountDef)/coque($typeDef,$ATTAQUANT[$typeDef])) * 100))){
+						$amountDef = 0;
+					}					
+				}
+			}
+			
+			$ATTACKER[$typeDef] = intval($amountDef);
+			$DEFENDER[$typeAtt] = intval($amountAtt);
 		}
 	}
-
-	// $ROUNDS[$round]['Attaquant'] = $Attack;
-	// $ROUNDS[$round]['Defenseur'] = $defend;
+	$ROUNDS[$round] = array(
+		'Attaquant'=>$ATTACKER,
+		'Defenseur'=>$DEFENDER
+	);
+	
+	#####################################
+	#    PHASE DE COMBAT RAPIDFIRE  	#
+	#####################################
+	
+	foreach($ROUNDS[$round]['Attaquant'] AS $typeAtt=>$amountAtt){
+		foreach($ROUNDS[$round]['Defenseur'] AS $typeDef=>$amountDef){
+			if($CombatCaps[$typeAtt]['sd'][$typeDef] > 1){
+				if(rand(1,100) <= round((1-(1/$CombatCaps[$typeAtt]['sd'][$typeDef])) * 100)){
+					if($amountDef > 0){
+						$amountDef = Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
+					}
+					
+					$ATTACKER[$typeAtt] = intval($amountAtt);
+					$DEFENDER[$typeDef] = intval($amountDef);
+				}
+			}
+		}
+	}
+	
+	$ROUNDS[$round] = array(
+		'Attaquant'=>$ATTACKER,
+		'Defenseur'=>$DEFENDER
+	);
+	
+	foreach($ROUNDS[$round]['Defenseur'] AS $typeAtt=>$amountAtt){
+		foreach($ROUNDS[$round]['Attaquant'] AS $typeDef=>$amountDef){
+			if($CombatCaps[$typeAtt]['sd'][$typeDef] > 1){
+				if(rand(1,100) <= round((1-(1/$CombatCaps[$typeAtt]['sd'][$typeDef])) * 100)){
+					if($amountDef > 0){
+						$amountDef = Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
+					}
+					
+					$ATTACKER[$typeDef] = intval($amountDef);
+					$DEFENDER[$typeAtt] = intval($amountAtt);
+				}
+			}
+		}
+	}
+	
+	$ROUNDS[$round] = array(
+		'Attaquant'=>$ATTACKER,
+		'Defenseur'=>$DEFENDER
+	);
+	
+	var_dump($ROUNDS[$round]);
 }
 
 function coque($type,$amount){
@@ -145,4 +157,29 @@ function bouclier($type,$amount){
 function armes($type,$amount){
 	global $CombatCaps;
 	return $CombatCaps[$type]['attack'] * $amount;
+}
+
+function Traitement($typeAtt,$amountAtt,$typeDef,$amountDef)
+{
+	$ArmeAtt[$typeAtt] = armes($typeAtt,$amountAtt);
+	$ShieldDef[$typeDef] = bouclier($typeDef,$amountDef);
+	$CoqueDef[$typeDef] = coque($typeDef,$amountDef);
+	if($ArmeAtt[$typeAtt] > $ShieldDef[$typeDef]){
+		$ArmeAtt[$typeAtt] -= $ShieldDef[$typeDef];
+		if($ArmeAtt[$typeAtt] >= $CoqueDef[$typeDef]){
+			# la c'est il n'y a plus rien x)
+			$CoqueDef [$typeDef]= 0;
+			$ShieldDef[$typeDef] = 0;
+			$amountDef = 0;
+		}else{
+			$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
+			$CoqueDef[$typeDef] -= $ArmeAtt[$typeAtt];
+			$ShieldDef[$typeDef] = 0;
+			$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
+		}
+	}else{
+		$ShieldDef[$typeDef] -= $ArmeAtt[$typeAtt];
+	}
+	
+	return $amountDef;
 }
