@@ -42,7 +42,6 @@ $DEFENSEUR = array(
 	207 => 1000
 );
 
-
 for($round = 1;$round <= 6;$round++)
 {
 	$ROUNDS[$round] = array(
@@ -53,73 +52,84 @@ for($round = 1;$round <= 6;$round++)
 	// l'attaquant est le premier à agresser !
 	foreach($ROUNDS[$round]['Attaquant'] AS $typeAtt=>$amountAtt){
 		foreach($ROUNDS[$round]['Defenseur'] AS $typeDef=>$amountDef){
+			var_dump($amountDef);
 			if($amountDef > 0)
 			{
-				$ArmeAtt = armes($typeAtt,$amountAtt);
-				$ShieldDef = bouclier($typeDef,$amountDef);
-				$CoqueDef = coque($typeDef,$amountDef);
-				if($ArmeAtt > $ShieldDef){
-					$NewArmeAtt = $ArmeAtt - $ShieldDef;
-					$ArmeAtt = $NewArmeAtt;
-					if($ArmeAtt >= $CoqueDef){
+				var_dump('Tour '.$round);
+				$ArmeAtt[$typeAtt] = armes($typeAtt,$amountAtt);
+				$ShieldDef[$typeDef] = bouclier($typeDef,$amountDef);
+				$CoqueDef[$typeDef] = coque($typeDef,$amountDef);
+				var_dump('ID vaisseau Att '.$typeAtt .' Attaque ID vaisseau def '.$typeDef);
+				if($ArmeAtt[$typeAtt] > $ShieldDef[$typeDef]){
+					$ArmeAtt[$typeAtt] -= $ShieldDef[$typeDef];
+					var_dump('le bouclier du defenseur n\'a pas tout absorber , il reste '.$ArmeAtt[$typeAtt].' de puissance a l\'attaquant');
+					if($ArmeAtt[$typeAtt] >= $CoqueDef[$typeDef]){
+						var_dump('la coque du vaisseau '.$typeDef.' du defenseur est détruite');
 						# la c'est il n'y a plus rien x)
-						$NewCoqueDef = 0;
-						$NewShieldDef = 0;
-						$NewAmountDef = 0;
+						$CoqueDef [$typeDef]= 0;
+						$ShieldDef[$typeDef] = 0;
+						$amountDef = 0;
 					}else{
-						$NewCoqueDef = $CoqueDef - $ArmeAtt;
-						$NewShieldDef = 0;
-						$NewAmountDef =$amountDef - round(($NewCoqueDef/$amountDef));
+						var_dump(''.$ArmeAtt[$typeAtt].' de puissance a l\'attaquant');
+						var_dump('la coque du vaisseau '. $CoqueDef[$typeDef] .' du defenseur');
+						$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
+						$CoqueDef[$typeDef] -= $ArmeAtt[$typeAtt];
+						var_dump('la coque du vaisseau '.$typeDef.' du defenseur a absorbe ' .$CoqueDef[$typeDef]);
+						$ShieldDef[$typeDef] = 0;
+						$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
 					}
 				}else{
-					$NewCoqueDef = $CoqueDef;
-					$NewShieldDef = $ShieldDef - $ArmeAtt;
-					$NewAmountDef = $amountDef;
+					$ShieldDef[$typeDef] -= $ArmeAtt[$typeAtt];
+					var_dump('le bouclier du defenseur a tous absorber mais il lui reste '.$ShieldDef[$typeDef].' de bouclier');
 				}
 			}
-			$Attack[] = array($typeAtt=>$amountAtt);
-			$defend[] = array($typeDef=>$NewAmountDef);
+			
+			$ATTAQUANT[$typeAtt] = intval($amountAtt);
+			$DEFENSEUR[$typeDef] = intval($amountDef);
 		}
 	}
+	$ROUNDS[$round] = array(
+		'Attaquant'=>$ATTAQUANT,
+		'Defenseur'=>$DEFENSEUR
+	);
 	
-	$ROUNDS[$round]['Attaquant'] = $Attack;
-	$ROUNDS[$round]['Defenseur'] = $defend;
-	
+	var_dump('On enregistre le nouveau tableau !');
+	var_dump($ROUNDS[$round]);
 	
 	// le defenseur replique
 	foreach($ROUNDS[$round]['Defenseur'] AS $typeDef=>$amountDef){
 		foreach($ROUNDS[$round]['Attaquant'] AS $typeAtt=>$amountAtt){
-			if($amountAtt > 0)
-			{
-				$ArmeDef = armes($typeDef,$amountDef);
-				$ShieldAtt = bouclier($typeAtt,$amountAtt);
-				$CoqueAtt = coque($typeAtt,$amountAtt);
-				if($ArmeDef > $ShieldAtt){
-					$NewArmeDef = $ArmeDef - $ShieldAtt;
-					$ArmeDef = $NewArmeDef;
-					if($ArmeDef >= $CoqueAtt){
-						# la c'est il n'y a plus rien x)
-						$NewCoqueAtt = 0;
-						$NewShieldAtt = 0;
-						$NewAmountAtt = 0;
-					}else{
-						$NewCoqueAtt = $CoqueAtt - $ArmeDef;
-						$NewShieldAtt = 0;
-						$NewAmountAtt =$amountAtt - round(($NewCoqueAtt/$amountAtt));
-					}
-				}else{
-					$NewCoqueAtt = $CoqueAtt;
-					$NewShieldAtt = $ShieldAtt - $ArmeDef;
-					$NewAmountAtt = $amountAtt;
-				}
-			}
-			$defend[] = array($typeDef=>$NewAmountDef);
-			$Attack[] = array($typeAtt=>$amountDef);
+			// if($amountAtt > 0)
+			// {
+				// $ArmeDef = armes($typeDef,$amountDef);
+				// $ShieldAtt = bouclier($typeAtt,$amountAtt);
+				// $CoqueAtt = coque($typeAtt,$amountAtt);
+				// if($ArmeDef > $ShieldAtt){
+					// $NewArmeDef = $ArmeDef - $ShieldAtt;
+					// $ArmeDef = $NewArmeDef;
+					// if($ArmeDef >= $CoqueAtt){
+						// # la c'est il n'y a plus rien x)
+						// $NewCoqueAtt = 0;
+						// $NewShieldAtt = 0;
+						// $NewAmountAtt = 0;
+					// }else{
+						// $NewCoqueAtt = $CoqueAtt - $ArmeDef;
+						// $NewShieldAtt = 0;
+						// $NewAmountAtt =$amountAtt - round(($NewCoqueAtt/$amountAtt));
+					// }
+				// }else{
+					// $NewCoqueAtt = $CoqueAtt;
+					// $NewShieldAtt = $ShieldAtt - $ArmeDef;
+					// $NewAmountAtt = $amountAtt;
+				// }
+			// }
+			// $defend[] = array($typeDef=>$NewAmountDef);
+			// $Attack[] = array($typeAtt=>$amountDef);
 		}
 	}
 
-	$ROUNDS[$round]['Attaquant'] = $Attack;
-	$ROUNDS[$round]['Defenseur'] = $defend;
+	// $ROUNDS[$round]['Attaquant'] = $Attack;
+	// $ROUNDS[$round]['Defenseur'] = $defend;
 }
 
 function coque($type,$amount){
