@@ -36,23 +36,34 @@ class Combat{
 	private $_ROUNDS = array();
 	private $_ATTACKER = array();
 	private $_ATTAQUANT = array();
+	private $_TechnoAtt = array();
 	private $_DEFENDER = array();
 	private $_DEFENSEUR = array();
+	private $_TechnoDef = array();
 	private $_Pricelist = array();
 	private $_Combatcap = array();
 	
 	
-	public function __construct($A,$B){
+	public function __construct($A,$B,$TA,$TB){
 		global $pricelist,$CombatCaps;
 		$this->_round = 1;
 		$this->_ATTACKER = $A;
 		$this->_DEFENDER = $B;
 		$this->_ATTAQUANT = $A;
 		$this->_DEFENSEUR = $B;
+		$this->_TechnoAtt = $TA;
+		$this->_TechnoDef = $TB;
 		$this->_Pricelist = $pricelist;
 		$this->_Combatcap = $CombatCaps;
 	}
 	
+	function pretty_number($n, $floor = true) {
+		if ($floor) {
+			$n = floor($n);
+		}
+		return number_format($n, 0, ",", ".");
+	}
+
 	private function coque($type,$nombre){
 		return (($this->_Pricelist[$type]['metal'] + $this->_Pricelist[$type]['crystal'])/10) * $nombre;
 	}
@@ -65,44 +76,67 @@ class Combat{
 		return $this->_Combatcap[$type]['attack'] * $nombre;
 	}
 	
-	private function Traitement($typeAtt,$amountAtt,$typeDef,$amountDef)
+	private function TotalAmount($array){
+		$toto = 0;
+		foreach($array AS $typeAtt=>$amountAtt){
+			$toto += $amountAtt;
+		}
+		return $toto;
+	}
+	
+	private function Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$TechnoAtt,$TechnoDef,$Rapidfire = false)
 	{
-		$ArmeAtt[$typeAtt]		= $this->arme($typeAtt,$amountAtt);
-		$ShieldDef[$typeDef]	= $this->bouclier($typeDef,$amountDef);
-		$CoqueDef[$typeDef]		= $this->coque($typeDef,$amountDef);
+		$ArmeAtt[$typeAtt]		= $this->arme($typeAtt,$amountAtt) * (1 + (0.1 * ($TechnoAtt["military_tech"])));
+		
+		if(!$Rapidfire)
+			$ShieldDef[$typeDef]	= $this->bouclier($typeDef,$amountDef) * (1 + (0.1 * ($TechnoDef["shield_tech"])));
+		else
+			$ShieldDef[$typeDef]	= 0;
+		
+		$CoqueDef[$typeDef]		= $this->coque($typeDef,$amountDef) * (1 + (0.1 * ($TechnoDef["defence_tech"])));
+		
+		var_dump("Les vaisseaux ".$typeAtt." (".$amountAtt.") Tire sur les vaisseaux " .$typeDef ." (".$amountDef.")");
 		if($ArmeAtt[$typeAtt] > $ShieldDef[$typeDef]){
+			
+			var_dump("La puissance des vaisseaux ".$typeAtt." (".$this->pretty_number($ArmeAtt[$typeAtt]).") etaient superieur au bouclier (".$this->pretty_number($ShieldDef[$typeDef]).") des vaisseaux ".$typeDef." ");			
 			$ArmeAtt[$typeAtt] -= $ShieldDef[$typeDef];
+			var_dump("Il reste ".$this->pretty_number($ArmeAtt[$typeAtt])." de puissance au vaisseaux ".$typeAtt."");
 			if($ArmeAtt[$typeAtt] >= $CoqueDef[$typeDef]){
-				# la c'est il n'y a plus rien x)
+				var_dump("la puissance des vaisseaux ".$typeAtt." (".$this->pretty_number($ArmeAtt[$typeAtt]).") est superieur a la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des vaisseaux ".$typeDef."");
 				$CoqueDef [$typeDef]= 0;
 				$ShieldDef[$typeDef] = 0;
 				$amountDef = 0;
 			}else{
+				var_dump("la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des vaisseaux ".$typeDef." a resister a la puissance des vaisseaux ".$typeAtt." (".$this->pretty_number($ArmeAtt[$typeAtt]).")");
 				$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
 				$CoqueDef[$typeDef] -= $ArmeAtt[$typeAtt];
+				var_dump("il reste (".$this->pretty_number($CoqueDef[$typeDef]).")de coque des vaisseaux ".$typeDef." sur ".$this->pretty_number($coqueBefore[$typeDef])."");
 				$ShieldDef[$typeDef] = 0;
 				$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
 			}
 		}else{
 			$ShieldDef[$typeDef] -= $ArmeAtt[$typeAtt];
+			var_dump("le bouclier des vaisseaux ".$typeDef." a absorbe ,il reste ".$ShieldDef[$typeDef]." de bouclier");
 		}
 		
 		return $amountDef;
 	}
 
-	private function PhaseAttaquant($round){
+	private function PhaseAttaquant(){
 		foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeAtt=>$amountAtt){
 			foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeDef=>$amountDef){
-				if($amountDef > 0){
-					if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) >= 30){ # si la coque à plus de 30 %
+				if($this->TotalAmount($this->_DEFENDER) > 0){
+					if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) > 30){
 						
-						$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
+						$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoAtt,$this->_TechnoDef);
 						
-					}else{ # dans le cas ou la coque à moins de 30 pourcent 
-						if(rand(1,100) <= round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100))){ # le defenseur à moins de 30 % de chance d'exploser
+					}else{
+						if(abs(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) - 100) >= rand(1,100)){
 							$amountDef = 0;
-						}					
+						}		
 					}
+				}else{
+					$amountDef = 0;
 				}
 				
 				$this->_ATTACKER[$typeAtt] = intval($amountAtt);
@@ -115,19 +149,26 @@ class Combat{
 		);
 	}
 	
-	private function PhaseDefenseur($round){
+	# attention normalement tirent simultanément une fois (exception : rapid-fire) sur une cible au hasard
+	private function NewPhaseCombat(){
+	}
+	
+	
+	private function PhaseDefenseur(){
 		foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeAtt=>$amountAtt){
 			foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeDef=>$amountDef){
-				if($amountDef > 0){	
-					if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) >= 30){
-						
-						$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
-						
+				if($this->TotalAmount($this->_ATTACKER) > 0){
+					
+					if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) > 30){
+						$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt);
+
 					}else{
-						if(rand(1,100) <= round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100))){
+						if(abs(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) - 100) >= rand(1,100)){
 							$amountDef = 0;
 						}					
 					}
+				}else{
+					$amountDef = 0;
 				}
 				
 				$this->_ATTACKER[$typeDef] = intval($amountDef);
@@ -140,26 +181,18 @@ class Combat{
 		);
 	}
 	
-	private function PhaseRapidFire($round){
+	private function PhaseRapidFire(){
 		
 		foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeAtt=>$amountAtt){
 			foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeDef=>$amountDef){
 				if($this->_Combatcap[$typeAtt]['sd'][$typeDef] > 1){
 					if(rand(1,100) <= round((1-(1/$this->_Combatcap[$typeAtt]['sd'][$typeDef])) * 100)){
-						if($amountDef > 0){
-							if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) >= 30){ # si la coque à plus de 30 %
-								
-								$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
-								
-							}else{ # dans le cas ou la coque à moins de 30 pourcent 
-								if(rand(1,100) <= round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100))){ # le defenseur à moins de 30 % de chance d'exploser
-									$amountDef = 0;
-								}					
-							}
+						if($this->TotalAmount($this->_DEFENDER) > 0){
+								var_dump("les vaisseaux ".$typeAtt." retire ce tour ci sur les vaisseaux ".$typeDef."");
+								$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoAtt,$this->_TechnoDef,true);
+								$this->_ATTACKER[$typeAtt] = intval($amountAtt);
+								$this->_DEFENDER[$typeDef] = intval($amountDef);
 						}
-						
-						$this->_ATTACKER[$typeAtt] = intval($amountAtt);
-						$this->_DEFENDER[$typeDef] = intval($amountDef);
 					}
 				}
 			}
@@ -174,20 +207,12 @@ class Combat{
 			foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeDef=>$amountDef){
 				if($this->_Combatcap[$typeAtt]['sd'][$typeDef] > 1){
 					if(rand(1,100) <= round((1-(1/$this->_Combatcap[$typeAtt]['sd'][$typeDef])) * 100)){
-						if($amountDef > 0){	
-							if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) >= 30){
-								
-								$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
-								
-							}else{
-								if(rand(1,100) <= round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100))){
-									$amountDef = 0;
-								}					
-							}
+						if($this->TotalAmount($this->_ATTACKER) > 0){
+								var_dump("les vaisseaux ".$typeAtt." retire ce tour ci sur les vaisseaux ".$typeDef."");
+								$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt,true);
+								$this->_ATTACKER[$typeDef] = intval($amountDef);
+								$this->_DEFENDER[$typeAtt] = intval($amountAtt);
 						}
-						
-						$this->_ATTACKER[$typeDef] = intval($amountDef);
-						$this->_DEFENDER[$typeAtt] = intval($amountAtt);
 					}
 				}
 			}
@@ -206,12 +231,27 @@ class Combat{
 				'Attaquant'=>$this->_ATTACKER,
 				'Defenseur'=>$this->_DEFENDER
 			);
+
 			
-			$this->PhaseAttaquant($this->_round);
-			$this->PhaseDefenseur($this->_round);
-			$this->PhaseRapidFire($this->_round);
+			if($this->TotalAmount($this->_ATTACKER) > 0 && $this->TotalAmount($this->_DEFENDER) > 0)
+			{
+				var_dump($this->ROUNDS[$this->_round]);
+				var_dump("Tour " . $this->_round);
+				var_dump("Phase de Combat Attaquant");
+				$this->PhaseAttaquant();
+				var_dump("Phase de Combat Defenseur");
+				$this->PhaseDefenseur();
+				
+				var_dump("Phase de RapidFire");
+				$this->PhaseRapidFire();
+				var_dump($this->ROUNDS[$this->_round]);
+				
+			}else{
+				var_dump("Fin du Combat au Tour ".$this->_round);
+				break;
+			}
 		}
-		return $this->ROUNDS;
+		return true;
 	}
 }
 ?>

@@ -29,14 +29,29 @@
  * use by mandalorien for Project - SCO
  */
 
+$TECHNO_ATT = array(
+	'defence_tech'=>18,
+	'shield_tech'=>18,
+	'military_tech'=>18
+);
 
 $ATTAQUANT = array(
 	// 202 => 500,
-	215 => 1000
+	206 => 23256
+);
+
+$TECHNO_DEF = array(
+	'defence_tech'=>20,
+	'shield_tech'=>20,
+	'military_tech'=>18
 );
 $DEFENSEUR = array(
-    213 => 500,
-	207 => 1000
+    203 => 8000,
+    208 => 1,
+    209 => 4965,
+    210 => 1904,
+    214 => 1,
+    215 => 1496,
 );
 
 // $ATTAQUANT = array(

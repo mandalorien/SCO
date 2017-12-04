@@ -41,5 +41,5 @@ require_once('class.combat.php');
 $ATTACKER = $ATTAQUANT;
 $DEFENDER = $DEFENSEUR;
 
-$SCO = new Combat($ATTAQUANT,$DEFENSEUR);
+$SCO = new Combat($ATTAQUANT,$DEFENSEUR,$TECHNO_ATT,$TECHNO_DEF);
 var_dump($SCO->PhaseResultat());
