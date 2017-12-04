@@ -53,12 +53,12 @@ for($round = 1;$round <= 6;$round++)
 	foreach($ROUNDS[$round]['Attaquant'] AS $typeAtt=>$amountAtt){
 		foreach($ROUNDS[$round]['Defenseur'] AS $typeDef=>$amountDef){
 			if($amountDef > 0){
-				if(round(((coque($typeDef,$amountDef)/coque($typeDef,$DEFENSEUR[$typeDef])) * 100)) >= 30){
+				if(round(((coque($typeDef,$amountDef)/coque($typeDef,$DEFENSEUR[$typeDef])) * 100)) >= 30){ # si la coque à plus de 30 %
 					
 					$amountDef = Traitement($typeAtt,$amountAtt,$typeDef,$amountDef);
 					
-				}else{
-					if(rand(1,100) <= round(((coque($typeDef,$amountDef)/coque($typeDef,$DEFENSEUR[$typeDef])) * 100))){
+				}else{ # dans le cas ou la coque à moins de 30 pourcent 
+					if(rand(1,100) <= round(((coque($typeDef,$amountDef)/coque($typeDef,$DEFENSEUR[$typeDef])) * 100))){ # le defenseur à moins de 30 % de chance d'exploser
 						$amountDef = 0;
 					}					
 				}
