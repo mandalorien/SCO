@@ -34,9 +34,13 @@ $TECHNO_ATT = array(
 	'shield_tech'=>18,
 	'military_tech'=>18
 );
+// $TECHNO_ATT = array(
+	// 'defence_tech'=>10,
+	// 'shield_tech'=>10,
+	// 'military_tech'=>10
+// );
 
 $ATTAQUANT = array(
-	// 202 => 500,
 	206 => 23256
 );
 
@@ -45,6 +49,12 @@ $TECHNO_DEF = array(
 	'shield_tech'=>20,
 	'military_tech'=>18
 );
+
+// $TECHNO_DEF = array(
+	// 'defence_tech'=>10,
+	// 'shield_tech'=>10,
+	// 'military_tech'=>10
+// );
 $DEFENSEUR = array(
     203 => 8000,
     208 => 1,
@@ -55,8 +65,8 @@ $DEFENSEUR = array(
 );
 
 // $ATTAQUANT = array(
-	// 214 => 1
+	// 215 => 1000
 // );
 // $DEFENSEUR = array(
-    // 204 => 10000
+    // 207 => 1000
 // );
