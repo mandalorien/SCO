@@ -37,11 +37,9 @@ class Combat{
 	private $_ATTACKER = array();
 	private $_ATTAQUANT = array();
 	private $_TechnoAtt = array();
-	private $_PowerAtt;
 	private $_DEFENDER = array();
 	private $_DEFENSEUR = array();
 	private $_TechnoDef = array();
-	private $_PowerDef;
 	private $_Pricelist = array();
 	private $_Combatcap = array();
 	
@@ -57,9 +55,6 @@ class Combat{
 		$this->_TechnoDef = $TB;
 		$this->_Pricelist = $pricelist;
 		$this->_Combatcap = $CombatCaps;
-		
-		$this->_PowerAtt = $this->TotalPower($this->_ATTACKER,$this->_TechnoAtt);
-		$this->_PowerDef = $this->TotalPower($this->_DEFENDER,$this->_TechnoDef);
 	}
 	
 	function pretty_number($n, $floor = true) {
@@ -69,16 +64,16 @@ class Combat{
 		return number_format($n, 0, ",", ".");
 	}
 
-	private function shell($type,$nombre){
-		return (($this->_Pricelist[$type]['metal'] + $this->_Pricelist[$type]['crystal'])/10) * $nombre;
+	private function shell($type,$amount){
+		return (($this->_Pricelist[$type]['metal'] + $this->_Pricelist[$type]['crystal'])/10) * $amount;
 	}
 
-	private function shield($type,$nombre){
-		return $this->_Combatcap[$type]['shield'] * $nombre;
+	private function shield($type,$amount){
+		return $this->_Combatcap[$type]['shield'] * $amount;
 	}
 
-	private function weapon($type,$nombre){
-		return $this->_Combatcap[$type]['attack'] * $nombre;
+	private function weapon($type,$amount){
+		return $this->_Combatcap[$type]['attack'] * $amount;
 	}
 	
 	private function TotalShells($array,$techno){
@@ -111,6 +106,223 @@ class Combat{
 			$toto += $amount;
 		}
 		return $toto;
+	}
+	
+	private function processing($shield,$shell,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$TechnoAtt,$TechnoDef,$Rapidfire = false){
+		global $lang;
+		
+		$ShieldDef[$typeDef] = $shield;
+		$CoqueDef[$typeDef] = $shell;
+		$ArmeAtt[$typeAtt] = $weapon;
+		
+		# last system
+		// $ArmeAtt[$typeAtt] = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($TechnoAtt["military_tech"])));
+				
+		var_dump("Les ".$lang['tech'][$typeAtt]." (".$this->pretty_number($amountAtt).") Tire sur les " .$lang['tech'][$typeDef] ." (".$this->pretty_number($amountDef).")");
+		if($ArmeAtt[$typeAtt] > $ShieldDef[$typeDef]){
+			
+			var_dump("La puissance des ".$lang['tech'][$typeAtt]." (".$this->pretty_number($ArmeAtt[$typeAtt]).") etant superieur au bouclier (".$this->pretty_number($ShieldDef[$typeDef]).") des ".$lang['tech'][$typeDef]." , les ".$lang['tech'][$typeDef]." n'ont plus de bouclier");			
+			$ArmeAtt[$typeAtt] -= $ShieldDef[$typeDef];
+			var_dump("Il reste ".$this->pretty_number($ArmeAtt[$typeAtt])." de puissance au ".$lang['tech'][$typeAtt]."");
+			if($ArmeAtt[$typeAtt] >= $CoqueDef[$typeDef]){
+				var_dump("la puissance des  ".$lang['tech'][$typeAtt]." (".$this->pretty_number($ArmeAtt[$typeAtt]).") est superieur a la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des ".$lang['tech'][$typeDef].", les ".$lang['tech'][$typeDef]." sont detruits");
+				$ArmeAtt[$typeAtt] -= $CoqueDef[$typeDef];
+				$CoqueDef [$typeDef]= 0;
+				$ShieldDef[$typeDef] = 0;
+				$amountDef = 0;
+			}else{
+				var_dump("la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des ".$lang['tech'][$typeDef]." ont resiste a la puissance des ".$lang['tech'][$typeAtt]." (".$this->pretty_number($ArmeAtt[$typeAtt]).")");
+				$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
+				$CoqueDef[$typeDef] -= $ArmeAtt[$typeAtt];
+				$ArmeAtt[$typeAtt] = 0;
+				var_dump("il reste (".$this->pretty_number($CoqueDef[$typeDef]).")de coque aux ".$lang['tech'][$typeDef]." sur ".$this->pretty_number($coqueBefore[$typeDef])."");
+				$ShieldDef[$typeDef] = 0;
+				$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
+			}
+		}else{
+			$ShieldDef[$typeDef] -= $ArmeAtt[$typeAtt];
+			var_dump("le bouclier des  ".$lang['tech'][$typeDef]." a absorbe ,il reste ".$this->pretty_number($ShieldDef[$typeDef])." de bouclier");
+		}
+		
+		return array(
+				$amountDef,
+				$ShieldDef[$typeDef],
+				$CoqueDef[$typeDef],
+				$ArmeAtt[$typeAtt]
+		);
+	}
+	
+	private function PhaseAttaquant(){
+		
+		$typeDef = array_rand($this->ROUNDS[$this->_round]['Defenseur'], 1);
+		
+		while($this->ROUNDS[$this->_round]['Defenseur'][$typeDef] <= 0){
+			$typeDef = array_rand($this->ROUNDS[$this->_round]['Defenseur'], 1);
+		}
+
+		$amountDef = $this->ROUNDS[$this->_round]['Defenseur'][$typeDef];
+
+		$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["shield_tech"])));
+		
+		$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["defence_tech"])));
+		
+		foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeAtt=>$amountAtt){
+			if($amountDef > 0 && $amountAtt > 0){
+				$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoAtt["military_tech"])));
+				if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) > 30){
+					
+					var_dump("Phase de combat Attaquant");
+					$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoAtt,$this->_TechnoDef);
+					$amountDef = $result[0];
+					$ShieldDef = $result[1];
+					$CoqueDef = $result[2];
+					$weapon = $result[3];
+				}else{
+					if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) - 100) >= rand(1,100)){
+						$amountDef = 0;
+						$ShieldDef = 0;
+						$CoqueDef = 0;
+					}
+				}
+			}
+			
+			$this->_ATTACKER[$typeAtt] = intval($amountAtt);
+			$this->_DEFENDER[$typeDef] = intval($amountDef);
+		}
+		$this->ROUNDS[$this->_round] = array(
+			'Attaquant'=>$this->_ATTACKER,
+			'Defenseur'=>$this->_DEFENDER
+		);
+		
+		if($amountDef > 0){
+			$RapidFireResult = $this->PhaseRapidFire('Attacker',$CoqueDef,$ShieldDef,$this->_ATTACKER,$this->_DEFENDER,$typeDef,$amountDef);
+			
+			$this->ROUNDS[$this->_round] = array(
+				'Attaquant'=>$RapidFireResult[0],
+				'Defenseur'=>$RapidFireResult[1]
+			);
+		}
+	}
+	
+
+	private function PhaseDefenseur(){
+
+		$typeDef = array_rand($this->ROUNDS[$this->_round]['Attaquant'], 1);
+
+		while($this->ROUNDS[$this->_round]['Attaquant'][$typeDef] <= 0){
+			$typeDef = array_rand($this->ROUNDS[$this->_round]['Attaquant'], 1);
+		}
+		
+		$amountDef = $this->ROUNDS[$this->_round]['Attaquant'][$typeDef];
+		
+		$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["shield_tech"])));
+		
+		$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["defence_tech"])));
+		
+		foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeAtt=>$amountAtt){
+			if($amountDef > 0 && $amountAtt > 0){
+				$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoDef["military_tech"])));
+				if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) > 30){
+					
+					var_dump("Phase de combat Defenseur");	
+					$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt);
+					$amountDef = $result[0];
+					$ShieldDef = $result[1];
+					$CoqueDef = $result[2];
+					$weapon = $result[3];
+				}else{
+					if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) - 100) >= rand(1,100)){
+						$amountDef = 0;
+					}
+				}
+			}
+			
+			$this->_ATTACKER[$typeDef] = intval($amountDef);
+			$this->_DEFENDER[$typeAtt] = intval($amountAtt);
+		}
+		
+		$this->ROUNDS[$this->_round] = array(
+			'Attaquant'=>$this->_ATTACKER,
+			'Defenseur'=>$this->_DEFENDER
+		);
+		
+		if($amountDef > 0){
+			$RapidFireResult = $this->PhaseRapidFire('Defendeur',$CoqueDef,$ShieldDef,$this->_DEFENDER,$this->_ATTACKER,$typeDef,$amountDef);
+			
+			$this->ROUNDS[$this->_round] = array(
+				'Attaquant'=>$RapidFireResult[0],
+				'Defenseur'=>$RapidFireResult[1]
+			);
+		}
+	}
+	
+	private function PhaseRapidFire($type,$CoqueDef,$ShieldDef,$Attaquant,$Defendeur,$typeDef,$amountDef){		
+		global $lang;
+		foreach($Attaquant AS $typeAtt=>$amountAtt){
+			if($this->_Combatcap[$typeAtt]['sd'][$typeDef] > 1){
+				var_dump("il y a un rapidfire du  ".$lang['tech'][$typeAtt]." sur le  ".$lang['tech'][$typeDef]."");
+				if(rand(1,100) <= round((1-(1/$this->_Combatcap[$typeAtt]['sd'][$typeDef])) * 100)){
+					if($amountDef > 0 && $amountAtt > 0){
+						if($type == 'Defendeur'){
+							$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoDef["military_tech"])));
+						}else{
+							$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoAtt["military_tech"])));
+						}
+						
+						if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$Defendeur[$typeDef])) * 100)) > 30){
+							
+							$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt);
+							$amountDef = $result[0];
+							$ShieldDef = $result[1];
+							$CoqueDef = $result[2];
+							
+						}else{
+							if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$Defendeur[$typeDef])) * 100)) - 100) >= rand(1,100)){
+								$amountDef = 0;
+							}
+						}
+					}
+				}
+			}
+			if($type == 'Defendeur'){
+				$this->_ATTACKER[$typeDef] = intval($amountDef);
+				$this->_DEFENDER[$typeAtt] = intval($amountAtt);
+			}else{
+				$this->_ATTACKER[$typeAtt] = intval($amountAtt);
+				$this->_DEFENDER[$typeDef] = intval($amountDef);
+			}
+		}
+
+		return array($this->_ATTACKER,$this->_DEFENDER);
+	}
+	
+	public function fight(){
+		
+		for($this->_round;$this->_round <= self::TOURS;$this->_round ++)
+		{
+				
+				$this->ROUNDS[$this->_round] = array(
+					'Attaquant'=>$this->_ATTACKER,
+					'Defenseur'=>$this->_DEFENDER
+				);
+				
+				if($this->TotalAmount($this->_ATTACKER) > 0 && $this->TotalAmount($this->_DEFENDER) > 0)
+				{
+					var_dump("Tour " . $this->_round);
+
+					
+					$this->PhaseAttaquant();
+
+					$this->PhaseDefenseur();
+					
+					var_dump($this->ROUNDS[$this->_round]);
+					
+				}else{
+				var_dump("Fin du Combat au Tour ".$this->_round);
+				break;
+			}
+		}
+		return true;
 	}
 }
 ?>

@@ -110,4 +110,34 @@
 
 	$reslist['fleet']    = array ( 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215 );
 	$reslist['defense']  = array ( 401, 402, 403, 404, 405, 406, 407, 408);
+	
+	$lang['tech'] = array(
+	200 => 'Vaisseaux',
+	202 => 'Petit transporteur',
+	203 => 'Grand transporteur',
+	204 => 'Chasseur l&eacute;ger',
+	205 => 'Chasseur lourd',
+	206 => 'Croiseur',
+	207 => 'Vaisseau de bataille',
+	208 => 'Vaisseau de colonisation',
+	209 => 'Recycleur',
+	210 => 'Sonde espionnage',
+	211 => 'Bombardier',
+	212 => 'Satellite solaire',
+	213 => 'Destructeur',
+	214 => 'Etoile de la mort',
+	215 => 'Traqueur',
+
+	400 => 'D&eacute;fense',
+	401 => 'Lanceur de missiles',
+	402 => 'Artillerie laser l&eacute;g&egrave;re',
+	403 => 'Artillerie laser lourde',
+	404 => 'Canon de Gauss',
+	405 => 'Artillerie &agrave; ions',
+	406 => 'Lanceur de plasma',
+	407 => 'Petit bouclier',
+	408 => 'Grand bouclier',
+	502 => 'Missile Interception',
+	503 => 'Missile Interplan&eacute;taire',
+	);
 ?>

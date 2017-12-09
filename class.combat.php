@@ -29,7 +29,7 @@
  * use by mandalorien for Project - SCO
  */
 
-class Combat{
+class Combat_Xnova{
 	
 	const TOURS = 6;
 	private $_round;
@@ -37,11 +37,9 @@ class Combat{
 	private $_ATTACKER = array();
 	private $_ATTAQUANT = array();
 	private $_TechnoAtt = array();
-	private $_PowerAtt;
 	private $_DEFENDER = array();
 	private $_DEFENSEUR = array();
 	private $_TechnoDef = array();
-	private $_PowerDef;
 	private $_Pricelist = array();
 	private $_Combatcap = array();
 	
@@ -57,8 +55,6 @@ class Combat{
 		$this->_TechnoDef = $TB;
 		$this->_Pricelist = $pricelist;
 		$this->_Combatcap = $CombatCaps;
-		$this->_PowerAtt = $this->TotalPower($this->_ATTACKER,$this->_TechnoAtt);
-		$this->_PowerDef = $this->TotalPower($this->_DEFENDER,$this->_TechnoDef);
 	}
 	
 	function pretty_number($n, $floor = true) {
@@ -98,6 +94,7 @@ class Combat{
 	
 	private function Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$TechnoAtt,$TechnoDef,$Rapidfire = false)
 	{
+		global $lang;
 		$ArmeAtt[$typeAtt] = $this->arme($typeAtt,$amountAtt) * (1 + (0.1 * ($TechnoAtt["military_tech"])));
 		
 		if(!$Rapidfire)
@@ -107,117 +104,31 @@ class Combat{
 		
 		$CoqueDef[$typeDef]		= $this->coque($typeDef,$amountDef) * (1 + (0.1 * ($TechnoDef["defence_tech"])));
 		
-		var_dump("Les vaisseaux ".$typeAtt." (".$amountAtt.") Tire sur les vaisseaux " .$typeDef ." (".$amountDef.")");
+		var_dump("Les  ".$lang['tech'][$typeAtt]." (".$amountAtt.") Tire sur les  " .$lang['tech'][$typeDef] ." (".$amountDef.")");
 		if($ArmeAtt[$typeAtt] > $ShieldDef[$typeDef]){
 			
-			var_dump("La puissance des vaisseaux ".$typeAtt." (".$this->pretty_number($ArmeAtt[$typeAtt]).") etaient superieur au bouclier (".$this->pretty_number($ShieldDef[$typeDef]).") des vaisseaux ".$typeDef." , les vaisseaux ".$typeDef." n'ont plus de bouclier");			
+			var_dump("La puissance des  ".$lang['tech'][$typeAtt]." (".$this->pretty_number($ArmeAtt[$typeAtt]).") etaient superieur au bouclier (".$this->pretty_number($ShieldDef[$typeDef]).") des  ".$lang['tech'][$typeDef]." , les  ".$lang['tech'][$typeDef]." n'ont plus de bouclier");			
 			$ArmeAtt[$typeAtt] -= $ShieldDef[$typeDef];
-			var_dump("Il reste ".$this->pretty_number($ArmeAtt[$typeAtt])." de puissance au vaisseaux ".$typeAtt."");
+			var_dump("Il reste ".$this->pretty_number($ArmeAtt[$typeAtt])." de puissance au  ".$lang['tech'][$typeAtt]."");
 			if($ArmeAtt[$typeAtt] >= $CoqueDef[$typeDef]){
-				var_dump("la puissance des vaisseaux ".$typeAtt." (".$this->pretty_number($ArmeAtt[$typeAtt]).") est superieur a la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des vaisseaux ".$typeDef.", les vaisseaux ".$typeDef." sont detruits");
+				var_dump("la puissance des  ".$lang['tech'][$typeAtt]." (".$this->pretty_number($ArmeAtt[$typeAtt]).") est superieur a la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des  ".$lang['tech'][$typeDef].", les  ".$lang['tech'][$typeDef]." sont detruits");
 				$CoqueDef [$typeDef]= 0;
 				$ShieldDef[$typeDef] = 0;
 				$amountDef = 0;
 			}else{
-				var_dump("la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des vaisseaux ".$typeDef." a resister a la puissance des vaisseaux ".$typeAtt." (".$this->pretty_number($ArmeAtt[$typeAtt]).")");
+				var_dump("la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des  ".$lang['tech'][$typeDef]." a resister a la puissance des  ".$lang['tech'][$typeAtt]." (".$this->pretty_number($ArmeAtt[$typeAtt]).")");
 				$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
 				$CoqueDef[$typeDef] -= $ArmeAtt[$typeAtt];
-				var_dump("il reste (".$this->pretty_number($CoqueDef[$typeDef]).")de coque des vaisseaux ".$typeDef." sur ".$this->pretty_number($coqueBefore[$typeDef])."");
+				var_dump("il reste (".$this->pretty_number($CoqueDef[$typeDef]).")de coque des  ".$lang['tech'][$typeDef]." sur ".$this->pretty_number($coqueBefore[$typeDef])."");
 				$ShieldDef[$typeDef] = 0;
 				$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
 			}
 		}else{
 			$ShieldDef[$typeDef] -= $ArmeAtt[$typeAtt];
-			var_dump("le bouclier des vaisseaux ".$typeDef." a absorbe ,il reste ".$ShieldDef[$typeDef]." de bouclier");
+			var_dump("le bouclier des  ".$lang['tech'][$typeDef]." a absorbe ,il reste ".$ShieldDef[$typeDef]." de bouclier");
 		}
 		
 		return $amountDef;
-	}
-	
-	private function Traitement2($PowerAtt,$typeDef,$amountDef,$TechnoDef,$Rapidfire = false)
-	{
-		if(!$Rapidfire)
-			$ShieldDef[$typeDef] = $this->bouclier($typeDef,$amountDef) * (1 + (0.1 * ($TechnoDef["shield_tech"])));
-		else
-			$ShieldDef[$typeDef] = 0;
-		
-		$CoqueDef[$typeDef]		= $this->coque($typeDef,$amountDef) * (1 + (0.1 * ($TechnoDef["defence_tech"])));
-		
-		var_dump("Les vaisseaux Agresseur  Tire sur les vaisseaux " .$typeDef ." (".$this->pretty_number($amountDef).")");
-		if($PowerAtt > $ShieldDef[$typeDef]){
-			
-			var_dump("La puissance des vaisseaux Agresseur (".$this->pretty_number($PowerAtt).") etaient superieur au bouclier (".$this->pretty_number($ShieldDef[$typeDef]).") des vaisseaux ".$typeDef." , les vaisseaux ".$typeDef." n'ont plus de bouclier");			
-			$PowerAtt -= $ShieldDef[$typeDef];
-			var_dump("Il reste ".$this->pretty_number($PowerAtt)." de puissance au vaisseaux Agresseur");
-			if($PowerAtt >= $CoqueDef[$typeDef]){
-				var_dump("la puissance des vaisseaux Agresseur (".$this->pretty_number($PowerAtt).") est superieur a la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des vaisseaux ".$typeDef.", les vaisseaux ".$typeDef." sont detruits");
-				$CoqueDef [$typeDef]= 0;
-				$ShieldDef[$typeDef] = 0;
-				$amountDef = 0;
-			}else{
-				var_dump("la coque (".$this->pretty_number($CoqueDef[$typeDef]).") des vaisseaux ".$typeDef." a resister a la puissance des vaisseaux Agresseur (".$this->pretty_number($PowerAtt).")");
-				$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
-				$CoqueDef[$typeDef] -= $PowerAtt;
-				var_dump("il reste (".$this->pretty_number($CoqueDef[$typeDef]).")de coque des vaisseaux ".$typeDef." sur ".$this->pretty_number($coqueBefore[$typeDef])."");
-				$ShieldDef[$typeDef] = 0;
-				$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
-			}
-		}else{
-			$ShieldDef[$typeDef] -= $PowerAtt;
-			var_dump("le bouclier des vaisseaux ".$typeDef." a absorbe ,il reste ".$ShieldDef[$typeDef]." de bouclier");
-		}
-		
-		return array($amountDef,$PowerAtt);
-	}
-
-	private function PhaseCombat(){
-		
-		var_dump("Phase de Combat Attaquant");
-		foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeDef=>$amountDef){
-			if($amountDef > 0 && $this->TotalAmount($this->_ATTACKER) > 0){
-				if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) > 30){
-					
-					$resultat = $this->Traitement2($this->_PowerAtt,$typeDef,$amountDef,$this->_TechnoDef);
-					$amountDef = $resultat[0];
-					$this->_PowerAtt = $resultat[1];
-					
-				}else{
-					if(abs(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) - 100) >= rand(1,100)){
-						$amountDef = 0;
-					}		
-				}
-			}
-			
-			$this->_DEFENDER[$typeDef] = intval($amountDef);
-		}
-		
-		$this->ROUNDS[$this->_round] = array(
-			'Attaquant'=>$this->_ATTACKER,
-			'Defenseur'=>$this->_DEFENDER
-		);
-		
-		var_dump("Phase de Combat Defenseur");
-		foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeDef=>$amountDef){
-			if($amountDef > 0 && $this->TotalAmount($this->_DEFENDER) > 0){
-				
-				if(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) > 30){
-					$resultat = $this->Traitement2($this->_PowerDef,$typeDef,$amountDef,$this->_TechnoAtt);
-					$amountDef = $resultat[0];
-					$this->_PowerDef = $resultat[1];
-
-				}else{
-					if(abs(round(((self::COQUE($typeDef,$amountDef)/self::COQUE($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) - 100) >= rand(1,100)){
-						$amountDef = 0;
-					}					
-				}
-			}
-			
-			$this->_ATTACKER[$typeDef] = intval($amountDef);
-		}
-		$this->ROUNDS[$this->_round] = array(
-			'Attaquant'=>$this->_ATTACKER,
-			'Defenseur'=>$this->_DEFENDER
-		);
 	}
 	
 	private function PhaseAttaquant(){
@@ -272,14 +183,13 @@ class Combat{
 	}
 	
 	private function PhaseRapidFire(){
-		
+		global $lang;
 		foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeAtt=>$amountAtt){
 			foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeDef=>$amountDef){
 				if($this->_Combatcap[$typeAtt]['sd'][$typeDef] > 1){
-					var_dump("il y a un rapidfire du vaisseaux ".$typeAtt." sur le vaisseaux ".$typeDef."");
+					var_dump("il y a un rapidfire du  ".$lang['tech'][$typeAtt]." sur le  ".$lang['tech'][$typeDef]."");
 					if(rand(1,100) <= round((1-(1/$this->_Combatcap[$typeAtt]['sd'][$typeDef])) * 100)){
 						if($this->TotalAmount($this->_DEFENDER) > 0){
-								var_dump("les vaisseaux ".$typeAtt." retire ce tour ci sur les vaisseaux ".$typeDef."");
 								$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoAtt,$this->_TechnoDef,true);
 								$this->_ATTACKER[$typeAtt] = intval($amountAtt);
 								$this->_DEFENDER[$typeDef] = intval($amountDef);
@@ -297,10 +207,9 @@ class Combat{
 		foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeAtt=>$amountAtt){
 			foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeDef=>$amountDef){
 				if($this->_Combatcap[$typeAtt]['sd'][$typeDef] > 1){
-					var_dump("il y a un rapidfire du vaisseaux ".$typeAtt." sur le vaisseaux ".$typeDef."");
+					var_dump("il y a un rapidfire du  ".$lang['tech'][$typeAtt]." sur le  ".$lang['tech'][$typeDef]."");
 					if(rand(1,100) <= round((1-(1/$this->_Combatcap[$typeAtt]['sd'][$typeDef])) * 100)){
 						if($this->TotalAmount($this->_ATTACKER) > 0){
-								var_dump("les vaisseaux ".$typeAtt." retire ce tour ci sur les vaisseaux ".$typeDef."");
 								$amountDef = $this->Traitement($typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt,true);
 								$this->_ATTACKER[$typeDef] = intval($amountDef);
 								$this->_DEFENDER[$typeAtt] = intval($amountAtt);
@@ -318,7 +227,7 @@ class Combat{
 
 	
 	public function PhaseResultat(){
-		for($this->_round = 1;$this->_round <= self::TOURS;$this->_round ++)
+		for($this->_round;$this->_round <= self::TOURS;$this->_round ++)
 		{
 			$this->ROUNDS[$this->_round] = array(
 				'Attaquant'=>$this->_ATTACKER,
@@ -328,19 +237,13 @@ class Combat{
 			
 			if($this->TotalAmount($this->_ATTACKER) > 0 && $this->TotalAmount($this->_DEFENDER) > 0)
 			{
-				var_dump($this->ROUNDS[$this->_round]);
 				var_dump("Tour " . $this->_round);
-				// var_dump("Phase de Combat Attaquant");
-				// $this->PhaseAttaquant();
-				// var_dump("Phase de Combat Defenseur");
-				// $this->PhaseDefenseur();
-				$this->PhaseCombat();
+				var_dump("Phase de Combat Attaquant");
+				$this->PhaseAttaquant();
+				var_dump("Phase de Combat Defenseur");
+				$this->PhaseDefenseur();
 				var_dump("Phase de RapidFire");
 				$this->PhaseRapidFire();
-				
-				//fin du round on remet la puissance à fond !!! 
-				$this->_PowerAtt = $this->TotalPower($this->_ATTACKER,$this->_TechnoAtt);
-				$this->_PowerDef = $this->TotalPower($this->_DEFENDER,$this->_TechnoDef);
 				
 				var_dump($this->ROUNDS[$this->_round]);
 				
