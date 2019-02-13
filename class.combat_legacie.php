@@ -135,7 +135,7 @@ class Combat{
 				$coqueBefore[$typeDef] = $CoqueDef[$typeDef];
 				$CoqueDef[$typeDef] -= $ArmeAtt[$typeAtt];
 				$ArmeAtt[$typeAtt] = 0;
-				var_dump("il reste (".$this->pretty_number($CoqueDef[$typeDef]).")de coque aux ".$lang['tech'][$typeDef]." sur ".$this->pretty_number($coqueBefore[$typeDef])."");
+				var_dump("il reste (".$this->pretty_number($CoqueDef[$typeDef]).") de structure coque aux ".$lang['tech'][$typeDef]." sur ".$this->pretty_number($coqueBefore[$typeDef])."");
 				$ShieldDef[$typeDef] = 0;
 				$amountDef = round((($CoqueDef[$typeDef]/$coqueBefore[$typeDef])*$amountDef));
 			}
@@ -154,105 +154,119 @@ class Combat{
 	
 	private function PhaseAttaquant(){
 		
-		$typeDef = array_rand($this->ROUNDS[$this->_round]['Defenseur'], 1);
-		
-		while($this->ROUNDS[$this->_round]['Defenseur'][$typeDef] <= 0){
-			$typeDef = array_rand($this->ROUNDS[$this->_round]['Defenseur'], 1);
-		}
+		foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeDef=>$amountDef){
 
-		$amountDef = $this->ROUNDS[$this->_round]['Defenseur'][$typeDef];
-
-		$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["shield_tech"])));
-		
-		$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["defence_tech"])));
-		
-		foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeAtt=>$amountAtt){
-			if($amountDef > 0 && $amountAtt > 0){
-				$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoAtt["military_tech"])));
-				if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) > 30){
-					
-					var_dump("Phase de combat Attaquant");
-					$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoAtt,$this->_TechnoDef);
-					$amountDef = $result[0];
-					$ShieldDef = $result[1];
-					$CoqueDef = $result[2];
-					$weapon = $result[3];
-				}else{
-					if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) - 100) >= rand(1,100)){
-						$amountDef = 0;
-						$ShieldDef = 0;
-						$CoqueDef = 0;
+			$amountDef = $this->ROUNDS[$this->_round]['Defenseur'][$typeDef];
+			$rand = rand(80, 120) / 100;
+			$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["shield_tech"]))) * $rand;
+			$rand = rand(80, 120) / 100;
+			$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["defence_tech"]))) * $rand;
+			
+			foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeAtt=>$amountAtt){
+				if($amountDef > 0 && $amountAtt > 0){
+					if(!isset($Lastweapon)){
+						$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoAtt["military_tech"])));
+					}else{
+						$weapon = $Lastweapon;
 					}
+					// $weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoAtt["military_tech"]))) / $Lastweapon * $amountAtt;
+					if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) > 30){
+						var_dump("Phase de combat Attaquant");
+						$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoAtt,$this->_TechnoDef);
+						$amountDef = $result[0];
+						$ShieldDef = $result[1];
+						$CoqueDef = $result[2];
+						$weapon = $result[3];
+						if($weapon <= 0){
+							$this->_ATTACKER[$typeAtt] = intval($amountAtt);
+							$this->_DEFENDER[$typeDef] = intval($amountDef);
+							$this->ROUNDS[$this->_round] = array(
+								'Attaquant'=>$this->_ATTACKER,
+								'Defenseur'=>$this->_DEFENDER
+							);
+							break(2);
+						}else{
+							$Lastweapon = $result[3];
+						}
+					}else{
+						if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_DEFENSEUR[$typeDef])) * 100)) - 100) >= rand(1,100)){
+							$this->_ATTACKER[$typeAtt] = intval($amountAtt);
+							$this->_DEFENDER[$typeDef] = intval(0);
+							$this->ROUNDS[$this->_round] = array(
+								'Attaquant'=>$this->_ATTACKER,
+								'Defenseur'=>$this->_DEFENDER
+							);
+						}
+					}
+				}else{
+					$this->_ATTACKER[$typeAtt] = intval($amountAtt);
+					$this->_DEFENDER[$typeDef] = 0;
+					$this->ROUNDS[$this->_round] = array(
+						'Attaquant'=>$this->_ATTACKER,
+						'Defenseur'=>$this->_DEFENDER
+					);
 				}
 			}
-			
-			$this->_ATTACKER[$typeAtt] = intval($amountAtt);
-			$this->_DEFENDER[$typeDef] = intval($amountDef);
-		}
-		$this->ROUNDS[$this->_round] = array(
-			'Attaquant'=>$this->_ATTACKER,
-			'Defenseur'=>$this->_DEFENDER
-		);
-		
-		if($amountDef > 0){
-			$RapidFireResult = $this->PhaseRapidFire('Attacker',$CoqueDef,$ShieldDef,$this->_ATTACKER,$this->_DEFENDER,$typeDef,$amountDef);
-			
-			$this->ROUNDS[$this->_round] = array(
-				'Attaquant'=>$RapidFireResult[0],
-				'Defenseur'=>$RapidFireResult[1]
-			);
 		}
 	}
 	
 
 	private function PhaseDefenseur(){
-
-		$typeDef = array_rand($this->ROUNDS[$this->_round]['Attaquant'], 1);
-
-		while($this->ROUNDS[$this->_round]['Attaquant'][$typeDef] <= 0){
-			$typeDef = array_rand($this->ROUNDS[$this->_round]['Attaquant'], 1);
-		}
-		
-		$amountDef = $this->ROUNDS[$this->_round]['Attaquant'][$typeDef];
-		
-		$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["shield_tech"])));
-		
-		$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["defence_tech"])));
-		
-		foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeAtt=>$amountAtt){
-			if($amountDef > 0 && $amountAtt > 0){
-				$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoDef["military_tech"])));
-				if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) > 30){
-					
-					var_dump("Phase de combat Defenseur");	
-					$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt);
-					$amountDef = $result[0];
-					$ShieldDef = $result[1];
-					$CoqueDef = $result[2];
-					$weapon = $result[3];
-				}else{
-					if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) - 100) >= rand(1,100)){
-						$amountDef = 0;
+		foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeDef=>$amountDef){	
+			
+			$amountDef = $this->ROUNDS[$this->_round]['Attaquant'][$typeDef];
+			$rand = rand(80, 120) / 100;
+			$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["shield_tech"]))) * $rand;
+			$rand = rand(80, 120) / 100;
+			$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["defence_tech"]))) * $rand;
+			
+			foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeAtt=>$amountAtt){
+				if($amountDef > 0 && $amountAtt > 0){
+					if(!isset($Lastweapon)){
+						$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoDef["military_tech"])));
+					}else{
+						$weapon = $Lastweapon;
 					}
+					
+					if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) > 30){
+						
+						var_dump("Phase de combat Defenseur");	
+						$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt);
+						$amountDef = $result[0];
+						$ShieldDef = $result[1];
+						$CoqueDef = $result[2];
+						$weapon = $result[3];
+						if($weapon <= 0){
+							$this->_ATTACKER[$typeDef] = intval($amountDef);
+							$this->_DEFENDER[$typeAtt] = intval($amountAtt);
+							$this->ROUNDS[$this->_round] = array(
+								'Attaquant'=>$this->_ATTACKER,
+								'Defenseur'=>$this->_DEFENDER
+							);
+							break(2);
+						}else{
+							$Lastweapon = $result[3];
+						}
+					}else{
+						if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$this->_ATTAQUANT[$typeDef])) * 100)) - 100) >= rand(1,100)){
+							$amountDef = 0;
+							$this->_ATTACKER[$typeDef] = intval($amountDef);
+							$this->_DEFENDER[$typeAtt] = intval(0);
+							$this->ROUNDS[$this->_round] = array(
+								'Attaquant'=>$this->_ATTACKER,
+								'Defenseur'=>$this->_DEFENDER
+							);
+						}
+					}
+				}else{
+					$this->_ATTACKER[$typeDef] = intval($amountDef);
+					$this->_DEFENDER[$typeAtt] = intval(0);
+					$this->ROUNDS[$this->_round] = array(
+						'Attaquant'=>$this->_ATTACKER,
+						'Defenseur'=>$this->_DEFENDER
+					);
 				}
 			}
-			
-			$this->_ATTACKER[$typeDef] = intval($amountDef);
-			$this->_DEFENDER[$typeAtt] = intval($amountAtt);
-		}
-		
-		$this->ROUNDS[$this->_round] = array(
-			'Attaquant'=>$this->_ATTACKER,
-			'Defenseur'=>$this->_DEFENDER
-		);
-		
-		if($amountDef > 0){
-			$RapidFireResult = $this->PhaseRapidFire('Defendeur',$CoqueDef,$ShieldDef,$this->_DEFENDER,$this->_ATTACKER,$typeDef,$amountDef);
-			
-			$this->ROUNDS[$this->_round] = array(
-				'Attaquant'=>$RapidFireResult[0],
-				'Defenseur'=>$RapidFireResult[1]
-			);
 		}
 	}
 	
@@ -261,25 +275,34 @@ class Combat{
 		foreach($Attaquant AS $typeAtt=>$amountAtt){
 			if($this->_Combatcap[$typeAtt]['sd'][$typeDef] > 1){
 				var_dump("il y a un rapidfire du  ".$lang['tech'][$typeAtt]." sur le  ".$lang['tech'][$typeDef]."");
-				if(rand(1,100) <= round((1-(1/$this->_Combatcap[$typeAtt]['sd'][$typeDef])) * 100)){
-					if($amountDef > 0 && $amountAtt > 0){
-						if($type == 'Defendeur'){
-							$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoDef["military_tech"])));
-						}else{
-							$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoAtt["military_tech"])));
-						}
+				$AmountRF = 0;
+				for($i = 1;$i <= $amountAtt;$i++){
+					if(rand(1,100) <= round((1-(1/$this->_Combatcap[$typeAtt]['sd'][$typeDef])) * 100)){
+						$AmountRF ++;
+					}else{
+						$AmountRF --;
+					}
+				}
+				
+				$AmountRF = ($AmountRF / 100);
+				var_dump($AmountRF);
+				if($amountDef > 0 && $amountAtt > 0){
+					if($type == 'Defendeur'){
+						$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoDef["military_tech"]))) * $AmountRF;
+					}else{
+						$weapon = $this->weapon($typeAtt,$amountAtt) * (1 + (0.1 * ($this->_TechnoAtt["military_tech"]))) * $AmountRF;
+					}
+					
+					if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$Defendeur[$typeDef])) * 100)) > 30){
 						
-						if(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$Defendeur[$typeDef])) * 100)) > 30){
-							
-							$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt);
-							$amountDef = $result[0];
-							$ShieldDef = $result[1];
-							$CoqueDef = $result[2];
-							
-						}else{
-							if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$Defendeur[$typeDef])) * 100)) - 100) >= rand(1,100)){
-								$amountDef = 0;
-							}
+						$result = $this->processing($ShieldDef,$CoqueDef,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$this->_TechnoDef,$this->_TechnoAtt);
+						$amountDef = $result[0];
+						$ShieldDef = $result[1];
+						$CoqueDef = $result[2];
+						
+					}else{
+						if(abs(round((($this->shell($typeDef,$amountDef)/$this->shell($typeDef,$Defendeur[$typeDef])) * 100)) - 100) >= rand(1,100)){
+							$amountDef = 0;
 						}
 					}
 				}
@@ -314,6 +337,42 @@ class Combat{
 					$this->PhaseAttaquant();
 
 					$this->PhaseDefenseur();
+					
+					#phase de RF 
+					foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeDef=>$amountDef){
+
+						$amountDef = $this->ROUNDS[$this->_round]['Defenseur'][$typeDef];
+
+						$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["shield_tech"])));
+						
+						$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoDef["defence_tech"])));					
+						if($amountDef > 0){
+							$RapidFireResult = $this->PhaseRapidFire('Attacker',$CoqueDef,$ShieldDef,$this->_ATTACKER,$this->_DEFENDER,$typeDef,$amountDef);
+							
+							$this->ROUNDS[$this->_round] = array(
+								'Attaquant'=>$RapidFireResult[0],
+								'Defenseur'=>$RapidFireResult[1]
+							);
+						}
+					}
+					
+					foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeDef=>$amountDef){	
+						
+						$amountDef = $this->ROUNDS[$this->_round]['Attaquant'][$typeDef];
+						
+						$ShieldDef = $this->shield($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["shield_tech"])));
+						
+						$CoqueDef  = $this->shell($typeDef,$amountDef) * (1 + (0.1 * ($this->_TechnoAtt["defence_tech"])));
+
+						if($amountDef > 0){
+							$RapidFireResult = $this->PhaseRapidFire('Defendeur',$CoqueDef,$ShieldDef,$this->_DEFENDER,$this->_ATTACKER,$typeDef,$amountDef);
+							
+							$this->ROUNDS[$this->_round] = array(
+								'Attaquant'=>$RapidFireResult[0],
+								'Defenseur'=>$RapidFireResult[1]
+							);
+						}
+					}
 					
 					var_dump($this->ROUNDS[$this->_round]);
 					

@@ -29,44 +29,49 @@
  * use by mandalorien for Project - SCO
  */
 
-$TECHNO_ATT = array(
-	'defence_tech'=>18,
-	'shield_tech'=>18,
-	'military_tech'=>18
-);
-// $TECHNO_ATT = array(
-	// 'defence_tech'=>10,
-	// 'shield_tech'=>10,
-	// 'military_tech'=>10
-// );
-
-$ATTAQUANT = array(
-	206 => 23256
+ $TECHNO_ATT = array(
+	'defence_tech'=>10,
+	'shield_tech'=>10,
+	'military_tech'=>10
 );
 
 $TECHNO_DEF = array(
-	'defence_tech'=>20,
-	'shield_tech'=>20,
-	'military_tech'=>18
+	'defence_tech'=>10,
+	'shield_tech'=>10,
+	'military_tech'=>10
 );
 
-// $TECHNO_DEF = array(
-	// 'defence_tech'=>10,
-	// 'shield_tech'=>10,
-	// 'military_tech'=>10
-// );
-$DEFENSEUR = array(
-    203 => 8000,
-    208 => 1,
-    209 => 4965,
-    210 => 1904,
-    214 => 1,
-    215 => 1496,
+$ATTAQUANT = array(
+	215 => 1000
 );
+$DEFENSEUR = array(
+    207 => 1000
+);
+
+// $TECHNO_ATT = array(
+	// 'defence_tech'=>18,
+	// 'shield_tech'=>18,
+	// 'military_tech'=>18
+// );
+
 
 // $ATTAQUANT = array(
-	// 215 => 1000
+	// 206 => 23256
 // );
+
+// $TECHNO_DEF = array(
+	// 'defence_tech'=>20,
+	// 'shield_tech'=>20,
+	// 'military_tech'=>18
+// );
+
+
 // $DEFENSEUR = array(
-    // 207 => 1000
+    // 203 => 8000,
+    // 208 => 1,
+    // 209 => 4965,
+    // 210 => 1904,
+    // 214 => 1,
+    // 215 => 1496,
 // );
+
