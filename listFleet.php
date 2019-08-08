@@ -56,7 +56,8 @@ $DEFENSEUR = array(
 
 
 // $ATTAQUANT = array(
-	// 206 => 23256
+	// 206 => 23256,
+	// 207 => 10000
 // );
 
 // $TECHNO_DEF = array(

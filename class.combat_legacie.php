@@ -111,6 +111,11 @@ class Combat{
 	private function processing($shield,$shell,$weapon,$typeAtt,$amountAtt,$typeDef,$amountDef,$TechnoAtt,$TechnoDef,$Rapidfire = false){
 		global $lang;
 		
+		$FacultatifamountDef = $amountDef;
+		$FacultatifShieldDef[$typeDef] = $shield;
+		$FacultatifCoqueDef[$typeDef] = $shell;
+		$FacultatifArmeAtt[$typeAtt] = $weapon;
+		
 		$ShieldDef[$typeDef] = $shield;
 		$CoqueDef[$typeDef] = $shell;
 		$ArmeAtt[$typeAtt] = $weapon;
@@ -145,10 +150,10 @@ class Combat{
 		}
 		
 		return array(
-				$amountDef,
-				$ShieldDef[$typeDef],
-				$CoqueDef[$typeDef],
-				$ArmeAtt[$typeAtt]
+				$FacultatifamountDef,
+				$FacultatifShieldDef[$typeDef],
+				$FacultatifCoqueDef[$typeDef],
+				$FacultatifArmeAtt[$typeAtt]
 		);
 	}
 	
@@ -184,7 +189,7 @@ class Combat{
 								'Attaquant'=>$this->_ATTACKER,
 								'Defenseur'=>$this->_DEFENDER
 							);
-							break(2);
+							break(1);
 						}else{
 							$Lastweapon = $result[3];
 						}
@@ -243,7 +248,7 @@ class Combat{
 								'Attaquant'=>$this->_ATTACKER,
 								'Defenseur'=>$this->_DEFENDER
 							);
-							break(2);
+							break(1);
 						}else{
 							$Lastweapon = $result[3];
 						}
@@ -336,8 +341,6 @@ class Combat{
 					
 					$this->PhaseAttaquant();
 
-					$this->PhaseDefenseur();
-					
 					#phase de RF 
 					foreach($this->ROUNDS[$this->_round]['Defenseur'] AS $typeDef=>$amountDef){
 
@@ -355,6 +358,8 @@ class Combat{
 							);
 						}
 					}
+					
+					$this->PhaseDefenseur();
 					
 					foreach($this->ROUNDS[$this->_round]['Attaquant'] AS $typeDef=>$amountDef){	
 						
